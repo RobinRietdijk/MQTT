@@ -6,7 +6,8 @@
         "dev": "",
         "start": "",
         "lint": "eslint .",
-        "lint:fix": "esling . --fix"
+        "lint:fix": "esling . --fix",
+        "test": "jest"
     },
     "dependencies": {
         "aedes": "^0.51.0",
