@@ -5,7 +5,7 @@ describe("Broker", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(1883, {}, {});
+        broker = new Broker(1883, 'mqtt');
     });
 
     afterEach(async () => {
@@ -23,7 +23,7 @@ describe("Broker", () => {
 
     it("handles error when starting on a busy port", async () => {
         await broker.start();
-        const secondBroker = new Broker(1883, {}, {});
+        const secondBroker = new Broker(1883, 'mqtt');
 
         await expect(secondBroker.start()).rejects.toThrow();
         await secondBroker.close();
