@@ -20,7 +20,7 @@ module.exports = {
     // Ignore dotfiles
     ".*.js",
     "node_modules/",
-    "dist/",
+    "dist/"
   ],
   overrides: [
     {

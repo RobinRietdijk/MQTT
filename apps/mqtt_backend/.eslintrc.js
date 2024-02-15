@@ -12,4 +12,7 @@ module.exports = {
             "jest": true,
         },
     }],
+    env: {
+        "jest/globals": true
+    }
 }

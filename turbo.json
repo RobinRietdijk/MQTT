@@ -11,6 +11,13 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test": {},
+    "test:watch": {
+      "cache": false
+    },
+    "test:detectOpenHandles": {
+      "cache": false
     }
   }
 }
