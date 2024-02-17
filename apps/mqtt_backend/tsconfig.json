@@ -1,0 +1,16 @@
+{
+    "extends": "@repo/typescript-config/base.json",
+    "compilerOptions": {
+        "types": ["jest"],
+        "plugins": [
+            {
+                "name": "mqtt_backend"
+            }
+        ]
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx"
+    ],
+    "exclude": ["node_modules"]
+}
