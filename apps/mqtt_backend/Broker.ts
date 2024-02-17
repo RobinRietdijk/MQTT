@@ -3,7 +3,7 @@ import { createServer, ServerFactoryOptions } from "aedes-server-factory";
 import { SecureContextOptions, Server as TLSServer } from "tls";
 
 type Protocol = 'mqtt' | 'mqtts' | 'ws' | 'wss';
-function validateServerOptions(protocol: Protocol, serverOptions: ServerFactoryOptions): void {
+export function validateServerOptions(protocol: Protocol, serverOptions: ServerFactoryOptions): void {
     switch (protocol) {
         case 'mqtt':
             if (!!serverOptions.tls || !!serverOptions.ws) throw new Error('TLS and WS options are not allowed for the mqtt protocol');
@@ -12,10 +12,10 @@ function validateServerOptions(protocol: Protocol, serverOptions: ServerFactoryO
             if (!serverOptions.tls) throw new Error('TLS options must be provided for mqtts protocol');
             break;
         case "ws":
-            if (!!serverOptions.tls || !serverOptions.ws) throw new Error('WS options must be provided for the ws protocol and TLS must be absent');
+            if (!!serverOptions.tls || !serverOptions.ws) throw new Error('WS must be set to true for the ws protocol and TLS must be absent');
             break;
         case 'wss':
-            if (!!serverOptions.tls || !serverOptions.ws || !serverOptions.https) throw new Error('TLS, WS, and HTTPS options must be provided for the wss protocol');
+            if (!!serverOptions.tls || !serverOptions.ws || !serverOptions.https) throw new Error('WS must be set to true, HTTPS options must be provided and TLS should not be defined for the wss protocol');
             break;
     }
 }
@@ -45,14 +45,17 @@ export class Broker {
     public getAedesOptions = (): AedesOptions => { return this.aedesOptions }
     public getServerOptions = (): ServerFactoryOptions => { return this.serverOptions }
     public getAedes = (): Aedes | undefined => { return this.aedes }
-    public getBrokker = (): ReturnType<typeof createServer> | undefined => { return this.broker }
+    public getBroker = (): ReturnType<typeof createServer> | undefined => { return this.broker }
 
     // Untested
     public setSecureContext(context: SecureContextOptions): void {
         if (this.protocol !== 'mqtts' && this.protocol !== 'wss') throw new Error("Secure context can only be set for 'mqtts' and 'wss' protocols.");
-        if (!this.broker) throw new Error("Server is not initialized.");
-        const broker = this.broker as TLSServer;
-        broker.setSecureContext(context);
+        
+        if (this.broker) {
+            const broker = this.broker as TLSServer;
+            broker.setSecureContext(context);
+        }
+
         if (this.serverOptions.tls) this.serverOptions.tls = { ...this.serverOptions.tls, ...context };
         if (this.serverOptions.https) this.serverOptions.https = { ...this.serverOptions.https, ...context };
     }
@@ -70,12 +73,21 @@ export class Broker {
         serverOptions?: ServerFactoryOptions,
     ): Promise<void> {
         if (!protocol && !port && !aedesOptions && !serverOptions) return;
-        validateServerOptions(protocol || this.protocol, serverOptions || this.serverOptions);
 
-        if (protocol) this.protocol = protocol;
-        if (port) this.port = port;
-        if (aedesOptions) this.aedesOptions = aedesOptions;
-        if (serverOptions) this.serverOptions = serverOptions;
+        const saved = { protoctol: this.protocol, port: this.port, aedesOptions: this.aedesOptions, serverOptions: this.serverOptions }
+        try {
+            if (protocol) this.protocol = protocol;
+            if (port) this.port = port;
+            if (aedesOptions) this.aedesOptions = aedesOptions;
+            if (serverOptions) this.serverOptions = serverOptions;
+            validateServerOptions(this.protocol, this.serverOptions);
+        } catch (err) {
+            this.protocol = saved.protoctol;
+            this.port = saved.port;
+            this.aedesOptions = saved.aedesOptions;
+            this.serverOptions = saved.serverOptions;
+            throw err;
+        }
 
         if (this.isListening()) {
             await this.close();
