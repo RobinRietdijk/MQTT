@@ -1,13 +1,13 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
 import { Broker } from '../Broker';
-import { Server } from 'net';
 import * as BrokerFunctions from '../Broker';
+import { Server } from 'net';
 
 describe("Broker", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(1883, 'mqtt');
+        broker = new Broker(8080, 'ws', {}, { ws: true });
     });
 
     afterEach(async () => {
@@ -17,14 +17,14 @@ describe("Broker", () => {
     describe('constructor', () => {
         it('should initialize the broker with provided configuration', () => {
             expect(broker).toBeDefined();
-            expect(broker.getPort()).toBe(1883);
-            expect(broker.getProtocol()).toBe('mqtt');
+            expect(broker.getPort()).toBe(8080);
+            expect(broker.getProtocol()).toBe('ws');
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({});
+            expect(broker.getServerOptions()).toEqual({ ws: true });
         });
 
         it('should throw an error for invalid configurations', () => {
-            expect(() => new Broker(1883, 'mqtt', {}, { tls: {} })).toThrow();
+            expect(() => new Broker(8080, 'ws', {}, { tls: {} })).toThrow();
         });
     });
 
@@ -41,7 +41,7 @@ describe("Broker", () => {
 
         it('should throw an error if the port is already in use', async () => {
             await broker.start();
-            const secondBroker = new Broker(1883, 'mqtt');
+            const secondBroker = new Broker(8080, 'ws', {}, { ws: true });
             expect(secondBroker.start()).rejects.toThrow();
         });
     });
@@ -81,23 +81,24 @@ describe("Broker", () => {
 
     describe('updateConfig', () => {
         it('should update the broker configuration', async () => {
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
-            expect(broker.getProtocol()).toEqual('ws');
-            expect(broker.getPort()).toEqual(8080);
+            await broker.start();
+            await broker.updateConfig('mqtt', 1883, {}, { ws: false });
+            expect(broker.getProtocol()).toEqual('mqtt');
+            expect(broker.getPort()).toEqual(1883);
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({ ws: true });
+            expect(broker.getServerOptions()).toEqual({ ws: false });
         });
 
         it('should throw error on wrong configuration', async () => {
             await broker.start();
-            expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
+            expect(broker.updateConfig('mqtt', 1883, {}, { ws: true })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {
             const startSpy = jest.spyOn(broker, 'start');
             const closeSpy = jest.spyOn(broker, 'close');
             await broker.start();
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
+            await broker.updateConfig('mqtt', 1883, {}, { ws: false });
             expect(closeSpy).toHaveBeenCalled();
             expect(startSpy).toHaveBeenCalled();
         });

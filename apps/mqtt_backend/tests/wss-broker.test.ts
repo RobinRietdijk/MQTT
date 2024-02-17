@@ -1,13 +1,21 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
 import { Broker } from '../Broker';
-import { Server } from 'net';
+import fs from 'fs';
 import * as BrokerFunctions from '../Broker';
+import { Server } from 'net';
+
+function getCert(): { key: Buffer, cert: Buffer } {
+    return {
+        key: fs.readFileSync('./tests/certificate/key.pem'),
+        cert: fs.readFileSync('./tests/certificate/cert.pem')
+    };
+}
 
 describe("Broker", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(1883, 'mqtt');
+        broker = new Broker(8443, 'wss', {}, { ws: true, https: {} });
     });
 
     afterEach(async () => {
@@ -17,14 +25,14 @@ describe("Broker", () => {
     describe('constructor', () => {
         it('should initialize the broker with provided configuration', () => {
             expect(broker).toBeDefined();
-            expect(broker.getPort()).toBe(1883);
-            expect(broker.getProtocol()).toBe('mqtt');
+            expect(broker.getPort()).toBe(8443);
+            expect(broker.getProtocol()).toBe('wss');
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({});
+            expect(broker.getServerOptions()).toEqual({ ws: true, https: {} });
         });
 
         it('should throw an error for invalid configurations', () => {
-            expect(() => new Broker(1883, 'mqtt', {}, { tls: {} })).toThrow();
+            expect(() => new Broker(8443, 'wss', {}, { ws: false })).toThrow();
         });
     });
 
@@ -41,7 +49,7 @@ describe("Broker", () => {
 
         it('should throw an error if the port is already in use', async () => {
             await broker.start();
-            const secondBroker = new Broker(1883, 'mqtt');
+            const secondBroker = new Broker(8443, 'wss', {}, { ws: true, https: {} });
             expect(secondBroker.start()).rejects.toThrow();
         });
     });
@@ -73,9 +81,18 @@ describe("Broker", () => {
     });
 
     describe('setSecureContext', () => {
-        it('should throw an error for unsupported protocols', () => {
-            const context = { key: 'fake-key', cert: 'fake-cert' };
-            expect(() => broker.setSecureContext(context)).toThrow();
+        it('should update HTTPS options and set secure context', () => {
+            const context = getCert();
+            broker.setSecureContext(context);
+            expect(broker.getServerOptions().https).toEqual(context);
+        });
+
+        it('should update HTTPS options and set secure context whilst server is running', async () => {
+            await broker.start();
+            const context = getCert();
+            broker.setSecureContext(context);
+            expect(broker.getServerOptions().https).toEqual(context);
+            expect(broker.isListening).toBeTruthy();
         });
     });
 
@@ -88,7 +105,7 @@ describe("Broker", () => {
             expect(broker.getServerOptions()).toEqual({ ws: true });
         });
 
-        it('should throw error on wrong configuration', async () => {
+        it('should throw error on wrng configuration', async () => {
             await broker.start();
             expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
         });
