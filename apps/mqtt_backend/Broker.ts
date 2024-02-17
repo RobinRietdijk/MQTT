@@ -17,8 +17,6 @@ function validateServerOptions(protocol: Protocol, serverOptions: ServerFactoryO
         case 'wss':
             if (!!serverOptions.tls || !serverOptions.ws || !serverOptions.https) throw new Error('TLS, WS, and HTTPS options must be provided for the wss protocol');
             break;
-        default:
-            throw new Error('Invalid protocol');
     }
 }
 export class Broker {
@@ -42,15 +40,21 @@ export class Broker {
         this.serverOptions = serverOptions;
     }
 
+    public getPort = (): number => { return this.port }
+    public getProtocol = (): Protocol => { return this.protocol }
+    public getAedesOptions = (): AedesOptions => { return this.aedesOptions }
+    public getServerOptions = (): ServerFactoryOptions => { return this.serverOptions }
+    public getAedes = (): Aedes | undefined => { return this.aedes }
+    public getBrokker = (): ReturnType<typeof createServer> | undefined => { return this.broker }
+
     // Untested
     public setSecureContext(context: SecureContextOptions): void {
         if (this.protocol !== 'mqtts' && this.protocol !== 'wss') throw new Error("Secure context can only be set for 'mqtts' and 'wss' protocols.");
         if (!this.broker) throw new Error("Server is not initialized.");
         const broker = this.broker as TLSServer;
-
-        //TODO: Replace context in serverOptions
-        
         broker.setSecureContext(context);
+        if (this.serverOptions.tls) this.serverOptions.tls = { ...this.serverOptions.tls, ...context };
+        if (this.serverOptions.https) this.serverOptions.https = { ...this.serverOptions.https, ...context };
     }
 
     // Untested
@@ -80,6 +84,7 @@ export class Broker {
     }
 
     public async start(): Promise<void> {
+        if (this.isListening()) throw new Error("Broker is already running");
         this.aedes = new Aedes(this.aedesOptions);
         this.broker = createServer(this.aedes, this.serverOptions);
 
