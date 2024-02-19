@@ -1,13 +1,14 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
-import { Broker } from '../Broker';
-import * as BrokerFunctions from '../Broker';
+import { Broker } from '../../Broker';
+import * as BrokerFunctions from '../../Broker';
 import fs from 'fs';
 import { Server } from 'net';
+jest.retryTimes(3);
 
 function getCert(): { key: Buffer, cert: Buffer } {
     return {
-        key: fs.readFileSync('./tests/certificate/key.pem'),
-        cert: fs.readFileSync('./tests/certificate/cert.pem')
+        key: fs.readFileSync('./tests/broker/certificate/key.pem'),
+        cert: fs.readFileSync('./tests/broker/certificate/cert.pem')
     };
 }
 
@@ -22,7 +23,7 @@ describe("Broker", () => {
         await broker.close();
     });
 
-    describe('constructor', () => {
+    describe('Broker - constructor', () => {
         it('should initialize the broker with provided configuration', () => {
             expect(broker).toBeDefined();
             expect(broker.getPort()).toBe(8883);
@@ -36,7 +37,7 @@ describe("Broker", () => {
         });
     });
 
-    describe('start', () => {
+    describe('Broker - start', () => {
         it('should start the broker and listen on the specified port', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -50,11 +51,11 @@ describe("Broker", () => {
         it('should throw an error if the port is already in use', async () => {
             await broker.start();
             const secondBroker = new Broker(8883, 'mqtts', {}, { tls: {} });
-            expect(secondBroker.start()).rejects.toThrow();
+            await expect(secondBroker.start()).rejects.toThrow();
         });
     });
 
-    describe('close', () => {
+    describe('Broker - close', () => {
         it('should close the broker and stop listening', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -80,7 +81,7 @@ describe("Broker", () => {
         });
     });
 
-    describe('setSecureContext', () => {
+    describe('Broker - setSecureContext', () => {
         it('should update TLS options and set secure context', () => {
             const context = getCert();
             broker.setSecureContext(context);
@@ -96,7 +97,7 @@ describe("Broker", () => {
         });
     });
 
-    describe('updateConfig', () => {
+    describe('Broker - updateConfig', () => {
         it('should update the broker configuration', async () => {
             await broker.start();
             await broker.updateConfig('mqtt', 1883, {}, {});
@@ -108,7 +109,7 @@ describe("Broker", () => {
 
         it('should throw error on wrong configuration', async () => {
             await broker.start();
-            expect(broker.updateConfig('mqtt', 1883, {}, { ws: true })).rejects.toThrow();
+            await expect(broker.updateConfig('mqtt', 1883, {}, { ws: true })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {

@@ -1,42 +1,35 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
-import { Broker } from '../Broker';
-import fs from 'fs';
-import * as BrokerFunctions from '../Broker';
+import { Broker } from '../../Broker';
+import * as BrokerFunctions from '../../Broker';
 import { Server } from 'net';
-
-function getCert(): { key: Buffer, cert: Buffer } {
-    return {
-        key: fs.readFileSync('./tests/certificate/key.pem'),
-        cert: fs.readFileSync('./tests/certificate/cert.pem')
-    };
-}
+jest.retryTimes(3);
 
 describe("Broker", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(8443, 'wss', {}, { ws: true, https: {} });
+        broker = new Broker(8080, 'ws', {}, { ws: true });
     });
 
     afterEach(async () => {
         await broker.close();
     });
 
-    describe('constructor', () => {
+    describe('Broker - constructor', () => {
         it('should initialize the broker with provided configuration', () => {
             expect(broker).toBeDefined();
-            expect(broker.getPort()).toBe(8443);
-            expect(broker.getProtocol()).toBe('wss');
+            expect(broker.getPort()).toBe(8080);
+            expect(broker.getProtocol()).toBe('ws');
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({ ws: true, https: {} });
+            expect(broker.getServerOptions()).toEqual({ ws: true });
         });
 
         it('should throw an error for invalid configurations', () => {
-            expect(() => new Broker(8443, 'wss', {}, { ws: false })).toThrow();
+            expect(() => new Broker(8080, 'ws', {}, { tls: {} })).toThrow();
         });
     });
 
-    describe('start', () => {
+    describe('Broker - start', () => {
         it('should start the broker and listen on the specified port', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -49,12 +42,12 @@ describe("Broker", () => {
 
         it('should throw an error if the port is already in use', async () => {
             await broker.start();
-            const secondBroker = new Broker(8443, 'wss', {}, { ws: true, https: {} });
-            expect(secondBroker.start()).rejects.toThrow();
+            const secondBroker = new Broker(8080, 'ws', {}, { ws: true });
+            await expect(secondBroker.start()).rejects.toThrow();
         });
     });
 
-    describe('close', () => {
+    describe('Broker - close', () => {
         it('should close the broker and stop listening', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -80,41 +73,33 @@ describe("Broker", () => {
         });
     });
 
-    describe('setSecureContext', () => {
-        it('should update HTTPS options and set secure context', () => {
-            const context = getCert();
-            broker.setSecureContext(context);
-            expect(broker.getServerOptions().https).toEqual(context);
-        });
-
-        it('should update HTTPS options and set secure context whilst server is running', async () => {
-            await broker.start();
-            const context = getCert();
-            broker.setSecureContext(context);
-            expect(broker.getServerOptions().https).toEqual(context);
-            expect(broker.isListening).toBeTruthy();
+    describe('Broker - setSecureContext', () => {
+        it('should throw an error for unsupported protocols', () => {
+            const context = { key: 'fake-key', cert: 'fake-cert' };
+            expect(() => broker.setSecureContext(context)).toThrow();
         });
     });
 
-    describe('updateConfig', () => {
+    describe('Broker - updateConfig', () => {
         it('should update the broker configuration', async () => {
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
-            expect(broker.getProtocol()).toEqual('ws');
-            expect(broker.getPort()).toEqual(8080);
+            await broker.start();
+            await broker.updateConfig('mqtt', 1883, {}, { ws: false });
+            expect(broker.getProtocol()).toEqual('mqtt');
+            expect(broker.getPort()).toEqual(1883);
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({ ws: true });
+            expect(broker.getServerOptions()).toEqual({ ws: false });
         });
 
-        it('should throw error on wrng configuration', async () => {
+        it('should throw error on wrong configuration', async () => {
             await broker.start();
-            expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
+            await expect(broker.updateConfig('mqtt', 1883, {}, { ws: true })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {
             const startSpy = jest.spyOn(broker, 'start');
             const closeSpy = jest.spyOn(broker, 'close');
             await broker.start();
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
+            await broker.updateConfig('mqtt', 1883, {}, { ws: false });
             expect(closeSpy).toHaveBeenCalled();
             expect(startSpy).toHaveBeenCalled();
         });

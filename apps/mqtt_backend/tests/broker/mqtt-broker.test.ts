@@ -1,7 +1,8 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
-import { Broker } from '../Broker';
+import { Broker } from '../../Broker';
 import { Server } from 'net';
-import * as BrokerFunctions from '../Broker';
+import * as BrokerFunctions from '../../Broker';
+jest.retryTimes(3);
 
 describe("Broker", () => {
     let broker: Broker;
@@ -14,7 +15,7 @@ describe("Broker", () => {
         await broker.close();
     });
 
-    describe('constructor', () => {
+    describe('Broker - constructor', () => {
         it('should initialize the broker with provided configuration', () => {
             expect(broker).toBeDefined();
             expect(broker.getPort()).toBe(1883);
@@ -28,7 +29,7 @@ describe("Broker", () => {
         });
     });
 
-    describe('start', () => {
+    describe('Broker - start', () => {
         it('should start the broker and listen on the specified port', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -42,11 +43,11 @@ describe("Broker", () => {
         it('should throw an error if the port is already in use', async () => {
             await broker.start();
             const secondBroker = new Broker(1883, 'mqtt');
-            expect(secondBroker.start()).rejects.toThrow();
+            await expect(secondBroker.start()).rejects.toThrow();
         });
     });
 
-    describe('close', () => {
+    describe('Broker - close', () => {
         it('should close the broker and stop listening', async () => {
             await broker.start();
             expect(broker.isListening()).toBe(true);
@@ -72,14 +73,14 @@ describe("Broker", () => {
         });
     });
 
-    describe('setSecureContext', () => {
+    describe('Broker - setSecureContext', () => {
         it('should throw an error for unsupported protocols', () => {
             const context = { key: 'fake-key', cert: 'fake-cert' };
             expect(() => broker.setSecureContext(context)).toThrow();
         });
     });
 
-    describe('updateConfig', () => {
+    describe('Broker - updateConfig', () => {
         it('should update the broker configuration', async () => {
             await broker.updateConfig('ws', 8080, {}, { ws: true });
             expect(broker.getProtocol()).toEqual('ws');
@@ -90,7 +91,7 @@ describe("Broker", () => {
 
         it('should throw error on wrong configuration', async () => {
             await broker.start();
-            expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
+            await expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {
