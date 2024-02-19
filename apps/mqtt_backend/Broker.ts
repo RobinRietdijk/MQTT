@@ -20,24 +20,16 @@ export function validateServerOptions(protocol: Protocol, serverOptions: ServerF
     }
 }
 export class Broker {
-    private port: number;
-    private protocol: Protocol;
-    private aedesOptions: AedesOptions;
-    private serverOptions: ServerFactoryOptions;
     private aedes?: Aedes;
     private broker?: ReturnType<typeof createServer>;
 
     constructor(
-        port: number,
-        protocol: Protocol,
-        aedesOptions: AedesOptions = {},
-        serverOptions: ServerFactoryOptions = {},
+        private port: number,
+        private protocol: Protocol,
+        private aedesOptions: AedesOptions = {},
+        private serverOptions: ServerFactoryOptions = {},
     ) {
         validateServerOptions(protocol, serverOptions);
-        this.port = port;
-        this.protocol = protocol;
-        this.aedesOptions = aedesOptions;
-        this.serverOptions = serverOptions;
     }
 
     public getPort = (): number => { return this.port }
@@ -47,7 +39,6 @@ export class Broker {
     public getAedes = (): Aedes | undefined => { return this.aedes }
     public getBroker = (): ReturnType<typeof createServer> | undefined => { return this.broker }
 
-    // Untested
     public setSecureContext(context: SecureContextOptions): void {
         if (this.protocol !== 'mqtts' && this.protocol !== 'wss') throw new Error("Secure context can only be set for 'mqtts' and 'wss' protocols.");
         
@@ -60,12 +51,10 @@ export class Broker {
         if (this.serverOptions.https) this.serverOptions.https = { ...this.serverOptions.https, ...context };
     }
 
-    // Untested
     public isListening(): boolean {
         return !!this.broker && this.broker.listening;
     }
 
-    // Untested
     public async updateConfig(
         protocol?: Protocol,
         port?: number,
@@ -130,10 +119,7 @@ export class Broker {
         }
 
         if (this.aedes) {
-            // Ignoring 'reject' because 'Aedes.prototype.close' does not provide an error callback.
-            // This promise ensures completion of the close operation without error handling.
-            //
-            // eslint-disable-next-line no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             await new Promise<void>((resolve, reject) => {
                 this.aedes!.close(() => resolve());
             });
