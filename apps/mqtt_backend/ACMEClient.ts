@@ -1,7 +1,8 @@
 import * as acme from 'acme-client';
 import * as fs from 'fs';
+import { TransIPDNSManager } from './TransIPDNSManager';
 
-class ACMEClient {
+export class ACMEClient {
     private client?: acme.Client;
     private accountKey: string | Buffer;
     private directoryUrl: string;
@@ -22,10 +23,10 @@ class ACMEClient {
     private async generateOrLoadAccountKey(): Promise<string | Buffer> {
         const keyPath = "./accountKey.pem";
         try {
-            return fs.readFileSync(keyPath, 'utf8');
+            return fs.readFileSync(keyPath, { encoding: 'utf8' });
         } catch (e) {
             const accountKey = await acme.forge.createPrivateKey();
-            fs.writeFileSync(keyPath, accountKey, 'utf8');
+            fs.writeFileSync(keyPath, accountKey, { encoding: 'utf8' });
             return accountKey;
         }
     }
@@ -40,15 +41,40 @@ class ACMEClient {
             email: this.email,
             termsOfServiceAgreed: true,
             challengeCreateFn: async (authz, challenge, keyAuthorization) => {
-                console.log(`Handle challenge for ${authz.identifier.value}:`, challenge);
+                if (challenge.type === 'dns-01') {
+                    const dnsRecordValue = keyAuthorization;
+                    // eslint-disable-next-line turbo/no-undeclared-env-vars
+                    const { TRANSIP_PKEY, TRANSIP_LOGIN } = process.env;
+                    const dnsManager = new TransIPDNSManager(TRANSIP_PKEY || '', TRANSIP_LOGIN || '');
+                    await dnsManager.authenticate();
+                    await dnsManager.addDNSRecord(this.domain, {
+                        name: `_acme-challenge.${this.domain}`,
+                        type: 'TXT',
+                        content: dnsRecordValue,
+                        expire: 300
+                    });
+                    console.log(`DNS TXT record for ACME challenge created: ${dnsRecordValue}`);
+                }
             },
             challengeRemoveFn: async (authz, challenge, keyAuthorization) => {
-                console.log(`Clean up challenge for ${authz.identifier.value}:`, challenge);
+                if (challenge.type === 'dns-01') {
+                    // eslint-disable-next-line turbo/no-undeclared-env-vars
+                    const { TRANSIP_PKEY, TRANSIP_LOGIN } = process.env;
+                    const dnsManager = new TransIPDNSManager(TRANSIP_PKEY || '', TRANSIP_LOGIN || '');
+                    await dnsManager.authenticate();
+                    await dnsManager.removeDNSRecord(this.domain, {
+                        name: `_acme-challenge.${this.domain}`,
+                        type: 'TXT',
+                        content: keyAuthorization,
+                        expire: 300
+                    });
+                    console.log(`DNS TXT record for ACME challenge removed.`);
+                }
             },
         });
 
-        fs.writeFileSync(`./${this.domain}.key`, key, 'utf8');
-        fs.writeFileSync(`./${this.domain}.crt`, certificate, 'utf8');
+        fs.writeFileSync(`./${this.domain}.key`, key, { encoding: 'utf8' });
+        fs.writeFileSync(`./${this.domain}.crt`, certificate, { encoding: 'utf8' });
         console.log(`Certificate and key for ${this.domain} have been saved.`);
     }
 }
