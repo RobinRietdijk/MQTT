@@ -4,21 +4,24 @@ import { SecureContextOptions, Server as TLSServer } from "tls";
 
 type Protocol = 'mqtt' | 'mqtts' | 'ws' | 'wss';
 export function validateServerOptions(protocol: Protocol, serverOptions: ServerFactoryOptions): void {
-    switch (protocol) {
-        case 'mqtt':
-            if (!!serverOptions.tls || !!serverOptions.ws) throw new Error('TLS and WS options are not allowed for the mqtt protocol');
-            break;
-        case 'mqtts':
-            if (!serverOptions.tls) throw new Error('TLS options must be provided for mqtts protocol');
-            break;
-        case "ws":
-            if (!!serverOptions.tls || !serverOptions.ws) throw new Error('WS must be set to true for the ws protocol and TLS must be absent');
-            break;
-        case 'wss':
-            if (!!serverOptions.tls || !serverOptions.ws || !serverOptions.https) throw new Error('WS must be set to true, HTTPS options must be provided and TLS should not be defined for the wss protocol');
-            break;
+    const { tls, ws, https } = serverOptions;
+
+    const errors = {
+        'mqtt': () => tls || ws ? 'TLS and WS options are not allowed for the MQTT protocol.' : '',
+        'mqtts': () => !tls ? 'TLS options must be provided for the MQTTS protocol.' : '',
+        'ws': () => tls || !ws ? 'WS must be set to true for the WS protocol, and TLS must be absent.' : '',
+        'wss': () => !!tls || !ws || !https ? 'TLS Must be absent, HTTPS must be provided and WS must be set to true for the WSS protocol.' : ''
+    };
+
+    const error = errors[protocol]?.();
+    if (error) {
+        throw new Error(error);
+    }
+    if (!errors[protocol]) {
+        throw new Error('Unsupported protocol specified.');
     }
 }
+
 export class Broker {
     private aedes?: Aedes;
     private broker?: ReturnType<typeof createServer>;
@@ -41,7 +44,7 @@ export class Broker {
 
     public setSecureContext(context: SecureContextOptions): void {
         if (this.protocol !== 'mqtts' && this.protocol !== 'wss') throw new Error("Secure context can only be set for 'mqtts' and 'wss' protocols.");
-        
+
         if (this.broker) {
             const broker = this.broker as TLSServer;
             broker.setSecureContext(context);

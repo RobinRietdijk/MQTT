@@ -175,9 +175,9 @@ describe('TransIPDNSManager', () => {
                 get: jest.fn().mockReturnValue(true)
             });
             dnsManager['accessToken'] = 'mock_access_token';
-    
+
             await dnsManager.addDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 });
-    
+
             expect(mockedAxios.post).toHaveBeenCalledWith(
                 'https://api.transip.nl/v6/domains/example.com/dns',
                 { dnsEntry: { name: 'test', type: 'TXT', content: 'test_content', expire: 300 } },
@@ -189,23 +189,23 @@ describe('TransIPDNSManager', () => {
                 }
             );
         });
-    
+
         it('throws an error when not authenticated', async () => {
             Object.defineProperty(dnsManager, 'isAuthenticated', {
                 get: jest.fn().mockReturnValue(false)
             });
-    
+
             await expect(dnsManager.addDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 }))
                 .rejects.toThrow('Not authenticated: Call authenticate() before adding DNS records.');
         });
-    
+
         it('handles failure from axios when adding a DNS record', async () => {
             mockedAxios.post.mockRejectedValue(new Error('Failed to add DNS TXT Record'));
             Object.defineProperty(dnsManager, 'isAuthenticated', {
                 get: jest.fn().mockReturnValue(true)
             });
             dnsManager['accessToken'] = 'mock_access_token';
-    
+
             await expect(dnsManager.addDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 }))
                 .rejects.toThrow('Failed to add DNS TXT Record');
         });
@@ -218,9 +218,9 @@ describe('TransIPDNSManager', () => {
                 get: jest.fn().mockReturnValue(true)
             });
             dnsManager['accessToken'] = 'mock_access_token';
-    
+
             await dnsManager.removeDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 });
-    
+
             expect(mockedAxios).toHaveBeenCalledWith({
                 method: 'delete',
                 url: 'https://api.transip.nl/v6/domains/example.com/dns',
@@ -231,23 +231,23 @@ describe('TransIPDNSManager', () => {
                 data: { dnsEntry: { name: 'test', type: 'TXT', content: 'test_content', expire: 300 } }
             });
         });
-    
+
         it('throws an error when not authenticated', async () => {
             Object.defineProperty(dnsManager, 'isAuthenticated', {
                 get: jest.fn().mockReturnValue(false)
             });
-    
+
             await expect(dnsManager.removeDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 }))
                 .rejects.toThrow('Not authenticated: Call authenticate() before adding DNS records.');
         });
-    
+
         it('handles failure from axios when removing a DNS record', async () => {
             mockedAxios.mockRejectedValue(new Error('Failed to remove DNS TXT Record'));
             Object.defineProperty(dnsManager, 'isAuthenticated', {
                 get: jest.fn().mockReturnValue(true)
             });
             dnsManager['accessToken'] = 'mock_access_token';
-    
+
             await expect(dnsManager.removeDNSRecord('example.com', { name: 'test', type: 'TXT', content: 'test_content', expire: 300 }))
                 .rejects.toThrow('Failed to remove DNS TXT Record');
         });
