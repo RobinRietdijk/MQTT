@@ -22,7 +22,8 @@ module.exports = {
     ".*.js",
     "*.config.js",
     "node_modules/",
-    "dist/"
+    "dist/",
+    "coverage/"
   ],
   overrides: [
     {
