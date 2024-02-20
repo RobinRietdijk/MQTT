@@ -2,7 +2,6 @@
     "extends": "@repo/typescript-config/base.json",
     "compilerOptions": {
         "types": ["jest"],
-        "esModuleInterop": true,
         "plugins": [
             {
                 "name": "mqtt_backend"
