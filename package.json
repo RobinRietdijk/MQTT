@@ -8,7 +8,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
-    "test:detectOpenHandles": "turbo run test:detectOpenHandles"
+    "test:detectOpenHandles": "turbo run test:detectOpenHandles",
+    "pretty": "prettier --write \"./**/*.{js,jsx,ts,tsx,mj,mjs,cjs,json}\""
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

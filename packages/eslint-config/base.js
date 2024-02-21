@@ -4,8 +4,13 @@ const project = resolve(process.cwd(), "tsconfig.json");
 
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  parser: '@typescript-eslint/parser',
-  extends: ["eslint:recommended", "prettier", "eslint-config-turbo", 'plugin:@typescript-eslint/recommended'],
+  parser: "@typescript-eslint/parser",
+  extends: [
+    "eslint:recommended",
+    "prettier",
+    "eslint-config-turbo",
+    "plugin:@typescript-eslint/recommended",
+  ],
   plugins: ["only-warn"],
   env: {
     node: true,
@@ -23,7 +28,7 @@ module.exports = {
     "*.config.js",
     "node_modules/",
     "dist/",
-    "coverage/"
+    "coverage/",
   ],
   overrides: [
     {
