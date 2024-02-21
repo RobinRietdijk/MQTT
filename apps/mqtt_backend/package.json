@@ -1,36 +1,33 @@
 {
-  "name": "mqtt_backend",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "dotenv -e .env.development.local ts-node-esm main.ts",
-    "start": "",
-    "lint": "eslint .",
-    "lint:fix": "esling . --fix",
-    "test": "jest --silent",
-    "test:watch": "jest --watch",
-    "test:detectOpenHandles": "jest --detectOpenHandles"
-  },
-  "dependencies": {
-    "acme-client": "^5.3.0",
-    "aedes": "^0.51.0",
-    "aedes-server-factory": "^0.2.1",
-    "axios": "^1.6.7",
-    "dotenv": "^16.4.4"
-  },
-  "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "@repo/eslint-config": "workspace:*",
-    "@repo/jest-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/eslint": "^8.56.2",
-    "@types/node": "^20.11.17",
-    "dotenv-cli": "^7.3.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-jest": "^27.8.0",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  }
+	"name": "mqtt_backend",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "dotenv -e .env.development.local ts-node-esm main.ts",
+		"start": "",
+		"lint": "eslint .",
+		"test": "jest"
+	},
+	"dependencies": {
+		"acme-client": "^5.3.0",
+		"aedes": "^0.51.0",
+		"aedes-server-factory": "^0.2.1",
+		"axios": "^1.6.7",
+		"dotenv": "^16.4.4"
+	},
+	"devDependencies": {
+		"@jest/globals": "^29.7.0",
+		"@repo/eslint-config": "workspace:*",
+		"@repo/jest-config": "workspace:*",
+		"@repo/typescript-config": "workspace:*",
+		"@types/eslint": "^8.56.2",
+		"@types/node": "^20.11.17",
+		"dotenv-cli": "^7.3.0",
+		"eslint": "^8.56.0",
+		"eslint-plugin-jest": "^27.8.0",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.1.2",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.3.3"
+	}
 }

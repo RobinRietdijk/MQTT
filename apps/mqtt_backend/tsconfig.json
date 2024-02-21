@@ -1,18 +1,18 @@
 {
-  "extends": "@repo/typescript-config/base.json",
-  "compilerOptions": {
-    "types": ["jest"],
-    "plugins": [
-      {
-        "name": "mqtt_backend"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"],
-      "@@/*": ["./*"],
-      "@test/*": ["./test/*"]
-    }
-  },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+	"extends": "@repo/typescript-config/base.json",
+	"compilerOptions": {
+		"types": ["jest"],
+		"plugins": [
+			{
+				"name": "mqtt_backend"
+			}
+		],
+		"paths": {
+			"@/*": ["./src/*"],
+			"@@/*": ["./*"],
+			"@test/*": ["./test/*"]
+		}
+	},
+	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": ["node_modules"]
 }

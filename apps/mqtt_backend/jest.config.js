@@ -1,5 +1,5 @@
-const baseConfig = require("@repo/jest-config");
+const baseConfig = require('@repo/jest-config');
 
 module.exports = {
-  ...baseConfig,
+	...baseConfig,
 };
