@@ -9,7 +9,6 @@
 		"lint": {},
 		"dev": {
 			"dotEnv": [".env.development.local"],
-			"env": ["TRANSIP_PKEY", "TRANSIP_LOGIN"],
 			"cache": false,
 			"persistent": true
 		},
