@@ -7,7 +7,7 @@
         "start": "",
         "lint": "eslint .",
         "lint:fix": "esling . --fix",
-        "test": "jest",
+        "test": "jest --silent",
         "test:watch": "jest --watch",
         "test:detectOpenHandles": "jest --detectOpenHandles"
     },

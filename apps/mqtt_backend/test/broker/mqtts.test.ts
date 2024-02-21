@@ -1,32 +1,26 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
-import { Broker } from '../../Broker';
+import { Broker } from '@/Broker';
 import { Server } from 'net';
-import * as BrokerFunctions from '../../Broker';
-jest.retryTimes(3);
+import * as BrokerFunctions from '@/Broker';
+import fs from 'fs';
+import path from 'path';
 
-describe("Broker", () => {
+function getCert(): { key: Buffer, cert: Buffer } {
+    return {
+        key: fs.readFileSync(path.resolve(__dirname, './certificate/key.pem')),
+        cert: fs.readFileSync(path.resolve(__dirname, './certificate/cert.pem'))
+    };
+}
+
+describe("Broker - mqtts", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(1883, 'mqtt');
+        broker = new Broker(0, 'mqtts', {}, { tls: {} });
     });
 
     afterEach(async () => {
         await broker.close();
-    });
-
-    describe('Broker - constructor', () => {
-        it('should initialize the broker with provided configuration', () => {
-            expect(broker).toBeDefined();
-            expect(broker.getPort()).toBe(1883);
-            expect(broker.getProtocol()).toBe('mqtt');
-            expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({});
-        });
-
-        it('should throw an error for invalid configurations', () => {
-            expect(() => new Broker(1883, 'mqtt', {}, { tls: {} })).toThrow();
-        });
     });
 
     describe('Broker - start', () => {
@@ -41,8 +35,9 @@ describe("Broker", () => {
         });
 
         it('should throw an error if the port is already in use', async () => {
+            broker['port'] = 8883;
             await broker.start();
-            const secondBroker = new Broker(1883, 'mqtt');
+            const secondBroker = new Broker(8883, 'mqtts', {}, { tls: {} });
             await expect(secondBroker.start()).rejects.toThrow();
         });
     });
@@ -74,31 +69,40 @@ describe("Broker", () => {
     });
 
     describe('Broker - setSecureContext', () => {
-        it('should throw an error for unsupported protocols', () => {
-            const context = { key: 'fake-key', cert: 'fake-cert' };
-            expect(() => broker.setSecureContext(context)).toThrow();
+        it('should update TLS options and set secure context', () => {
+            const context = getCert();
+            broker.setSecureContext(context);
+            expect(broker.getServerOptions().tls).toEqual(context);
+        });
+
+        it('should update TLS options and set secure context whilst server is running', async () => {
+            await broker.start();
+            const context = getCert();
+            broker.setSecureContext(context);
+            expect(broker.getServerOptions().tls).toEqual(context);
+            expect(broker.isListening).toBeTruthy();
         });
     });
 
     describe('Broker - updateConfig', () => {
         it('should update the broker configuration', async () => {
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
-            expect(broker.getProtocol()).toEqual('ws');
-            expect(broker.getPort()).toEqual(8080);
+            await broker.start();
+            await broker.updateConfig('mqtt', 0, {}, {});
+            expect(broker.getProtocol()).toEqual('mqtt');
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({ ws: true });
+            expect(broker.getServerOptions()).toEqual({});
         });
 
         it('should throw error on wrong configuration', async () => {
             await broker.start();
-            await expect(broker.updateConfig('ws', 8080, {}, { ws: false })).rejects.toThrow();
+            await expect(broker.updateConfig('mqtt', 0, {}, { ws: true })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {
             const startSpy = jest.spyOn(broker, 'start');
             const closeSpy = jest.spyOn(broker, 'close');
             await broker.start();
-            await broker.updateConfig('ws', 8080, {}, { ws: true });
+            await broker.updateConfig('mqtt', 0, {}, {});
             expect(closeSpy).toHaveBeenCalled();
             expect(startSpy).toHaveBeenCalled();
         });

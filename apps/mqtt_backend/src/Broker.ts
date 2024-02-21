@@ -42,6 +42,10 @@ export class Broker {
     public getAedes = (): Aedes | undefined => { return this.aedes }
     public getBroker = (): ReturnType<typeof createServer> | undefined => { return this.broker }
 
+    public isListening(): boolean {
+        return !!this.broker && this.broker.listening;
+    }
+
     public setSecureContext(context: SecureContextOptions): void {
         if (this.protocol !== 'mqtts' && this.protocol !== 'wss') throw new Error("Secure context can only be set for 'mqtts' and 'wss' protocols.");
 
@@ -52,10 +56,6 @@ export class Broker {
 
         if (this.serverOptions.tls) this.serverOptions.tls = { ...this.serverOptions.tls, ...context };
         if (this.serverOptions.https) this.serverOptions.https = { ...this.serverOptions.https, ...context };
-    }
-
-    public isListening(): boolean {
-        return !!this.broker && this.broker.listening;
     }
 
     public async updateConfig(

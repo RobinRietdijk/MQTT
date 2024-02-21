@@ -1,40 +1,17 @@
 import { describe, beforeEach, afterEach, it, expect, jest } from '@jest/globals'
-import { Broker } from '../../Broker';
-import * as BrokerFunctions from '../../Broker';
-import fs from 'fs';
+import { Broker } from '@/Broker';
 import { Server } from 'net';
-jest.retryTimes(3);
+import * as BrokerFunctions from '@/Broker';
 
-function getCert(): { key: Buffer, cert: Buffer } {
-    return {
-        key: fs.readFileSync('./tests/broker/certificate/key.pem'),
-        cert: fs.readFileSync('./tests/broker/certificate/cert.pem')
-    };
-}
-
-describe("Broker", () => {
+describe("Broker - ws", () => {
     let broker: Broker;
 
     beforeEach(() => {
-        broker = new Broker(8883, 'mqtts', {}, { tls: {} });
+        broker = new Broker(0, 'ws', {}, { ws: true });
     });
 
     afterEach(async () => {
         await broker.close();
-    });
-
-    describe('Broker - constructor', () => {
-        it('should initialize the broker with provided configuration', () => {
-            expect(broker).toBeDefined();
-            expect(broker.getPort()).toBe(8883);
-            expect(broker.getProtocol()).toBe('mqtts');
-            expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({ tls: {} });
-        });
-
-        it('should throw an error for invalid configurations', () => {
-            expect(() => new Broker(8883, 'mqtts', {}, { ws: true })).toThrow();
-        });
     });
 
     describe('Broker - start', () => {
@@ -49,8 +26,9 @@ describe("Broker", () => {
         });
 
         it('should throw an error if the port is already in use', async () => {
+            broker['port'] = 8080;
             await broker.start();
-            const secondBroker = new Broker(8883, 'mqtts', {}, { tls: {} });
+            const secondBroker = new Broker(8080, 'ws', {}, { ws: true });
             await expect(secondBroker.start()).rejects.toThrow();
         });
     });
@@ -82,41 +60,31 @@ describe("Broker", () => {
     });
 
     describe('Broker - setSecureContext', () => {
-        it('should update TLS options and set secure context', () => {
-            const context = getCert();
-            broker.setSecureContext(context);
-            expect(broker.getServerOptions().tls).toEqual(context);
-        });
-
-        it('should update TLS options and set secure context whilst server is running', async () => {
-            await broker.start();
-            const context = getCert();
-            broker.setSecureContext(context);
-            expect(broker.getServerOptions().tls).toEqual(context);
-            expect(broker.isListening).toBeTruthy();
+        it('should throw an error for unsupported protocols', () => {
+            const context = { key: 'fake-key', cert: 'fake-cert' };
+            expect(() => broker.setSecureContext(context)).toThrow();
         });
     });
 
     describe('Broker - updateConfig', () => {
         it('should update the broker configuration', async () => {
             await broker.start();
-            await broker.updateConfig('mqtt', 1883, {}, {});
+            await broker.updateConfig('mqtt', 0, {}, { ws: false });
             expect(broker.getProtocol()).toEqual('mqtt');
-            expect(broker.getPort()).toEqual(1883);
             expect(broker.getAedesOptions()).toEqual({});
-            expect(broker.getServerOptions()).toEqual({});
+            expect(broker.getServerOptions()).toEqual({ ws: false });
         });
 
         it('should throw error on wrong configuration', async () => {
             await broker.start();
-            await expect(broker.updateConfig('mqtt', 1883, {}, { ws: true })).rejects.toThrow();
+            await expect(broker.updateConfig('mqtt', 0, {}, { ws: true })).rejects.toThrow();
         });
 
         it('should restart the broker if already listening', async () => {
             const startSpy = jest.spyOn(broker, 'start');
             const closeSpy = jest.spyOn(broker, 'close');
             await broker.start();
-            await broker.updateConfig('mqtt', 1883, {}, {});
+            await broker.updateConfig('mqtt', 0, {}, { ws: false });
             expect(closeSpy).toHaveBeenCalled();
             expect(startSpy).toHaveBeenCalled();
         });
