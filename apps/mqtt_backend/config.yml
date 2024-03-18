@@ -14,18 +14,19 @@ secureOptions:
   key: 'path/to/key.pem'
   rejectUnauthorized: true
 
-tcp:
-  enabled: true
-  port: 1883
+servers:
+  tcp:
+    protocol: 'tcp'
+    port: 1883
 
-tls:
-  enabled: true
-  port: 8883
+  tls:
+    protocol: 'tls'
+    port: 8883
 
-ws:
-  enabled: true
-  port: 3000
+  ws:
+    protocol: 'ws'
+    port: 3000
 
-wss:
-  enabled: true
-  port: 4000
+  wss:
+    protocol: 'wss'
+    port: 4000

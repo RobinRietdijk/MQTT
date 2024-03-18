@@ -1,122 +1,109 @@
-import Aedes, { Client } from 'aedes';
+import Aedes from 'aedes';
+import { Listener } from './Listener';
+import { ValidationError } from './utils/errors';
+
 import fs from 'fs';
 import YAML from 'yaml';
 import { initPersistence } from './utils/persistence';
-import { Server } from 'net';
 
 const DEFAULT_CONFIG_PATH = '@@/config.ini';
 
-export class Broker {
+export class MultiBroker {
     private configPath: string;
     private config: any;
+
     private broker!: Aedes;
-    private servers?: [Server];
+    private listeners: { [key: string]: Listener } = {};
 
-    constructor() {
-        const cfg = process.env.BROKER_CONFIG;
-        this.configPath = cfg ? cfg : DEFAULT_CONFIG_PATH;
-        this.config = this.readConfig();
+    constructor(
+        config?: string,
+    ) {
+        this.configPath = config || DEFAULT_CONFIG_PATH;
 
-        this.initAedes().then((broker) => {
-            this.broker = broker;
-        });
+        this.loadConfig();
+        this.initAedes();
     }
 
-    private readConfig(): any {
-        const data = fs.readFileSync(this.configPath, 'utf-8');
-        return YAML.parse(data);
+    private loadConfig(): void {
+        try {
+            const data = fs.readFileSync(this.configPath, 'utf-8');
+            this.config = YAML.parse(data);
+        } catch (error) {
+            let message = 'Unknown error';
+            if (error instanceof Error) message = error.message;
+            throw new Error('Failed to load configuration file: ' + message);
+        }
     }
 
     private async initAedes(): Promise<Aedes> {
-        const { mq, persistence } = await initPersistence(this.config.aedes);
-        const aedesOpts: { [key: string]: any } = {
-            persistence,
-            mq
-        };
+        try {
+            const { mq, persistence } = await initPersistence(this.config.aedes);
+            const aedesOpts: { [key: string]: any } = {
+                persistence,
+                mq
+            };
 
-        aedesOpts.id = this.config.aedes.id;
-        aedesOpts.concurrency = this.config.aedes.concurrency;
-        aedesOpts.queueLimit = this.config.aedes.queueLimit;
-        aedesOpts.maxClientsIdLength = this.config.aedes.maxClientsIdLength;
-        aedesOpts.heartbeatInterval = this.config.aedes.heartbeatInterval;
-        aedesOpts.connectTimeout = this.config.aedes.connectTimeout;
-        aedesOpts.keepAliveLimit = this.config.aedes.keepAliveLimit;
+            aedesOpts.id = this.config.aedes.id;
+            aedesOpts.concurrency = this.config.aedes.concurrency;
+            aedesOpts.queueLimit = this.config.aedes.queueLimit;
+            aedesOpts.maxClientsIdLength = this.config.aedes.maxClientsIdLength;
+            aedesOpts.heartbeatInterval = this.config.aedes.heartbeatInterval;
+            aedesOpts.connectTimeout = this.config.aedes.connectTimeout;
+            aedesOpts.keepAliveLimit = this.config.aedes.keepAliveLimit;
 
-        const broker = new Aedes(aedesOpts);
-        return broker;
+            const broker = new Aedes(aedesOpts);
+            return broker;
+        } catch (error) {
+            let message = 'Unknown error';
+            if (error instanceof Error) message = error.message;
+            throw new Error('Failed to initialize Aedes broker: ' + message);
+        }
     }
 
-    private startWebsocket(server: any, handle: Client): void {
-        const ws = new WebSocket.Server({ server });
-        ws.on('connection', function(conn, req) {
-            handle(WebSocket.createWebSocketStream(conn), req);
-        });
+    public async waitUntilReady(): Promise<void> {
+        await this.initAedes();
     }
 
-    private async createServer(protocol: string, host: string, port: number, options: any, handle: Client): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let server: any = null;
-            if (protocol === 'tls') {
-                server = tls.createServer(options, handle);
-            } else if (protocol === 'ws' || protocol === 'wss') {
-                server = protocol === 'ws' ? http.createServer() : https.createServer(options);
-                startWebsocket(server, handle);
-            } else if (protocol === 'tcp') {
-                server = net.createServer(handle);
-            } else {
-                reject(Error('Invalid protocol ' + protocol));
-            }
-
-            if (server) {
-                server._protocol = protocol;
-                server.listen(port, host, (error: Error) => {
-                    if (error) reject(error);
-                    else resolve(server);
-
-                    console.log('%s server listening on port %s:%d', protocol.toUpperCase(), host, port)
-                });
-            }
-        });
+    public getBroker(): Aedes {
+        return this.broker;
     }
 
-    async start() {
+    public async start(): Promise<void> {
         const serverOpts: { [key: string]: any } = {};
-        const isSecure = this.config.tls.enabled || this.config.wss.enabled;
+        const isSecure = this.config.servers.some((server: { [key: string]: any }) => ['tls', 'wss'].includes(server.protocol));
 
         if (isSecure) {
             if (this.config.secureOptions.cert && this.config.secureOptions.key) {
                 serverOpts.key = fs.readFileSync(this.config.key)
                 serverOpts.cert = fs.readFileSync(this.config.cert)
                 serverOpts.rejectUnauthorized = this.config.rejectUnauthorized
+            } else {
+                throw new ValidationError('Must supply both private key and signed certificate to create secure aedes server');
             }
-            throw new Error('Must supply both private key and signed certificate to create secure aedes server')
         }
 
-        const servers: Partial<[Server]> = [];
-
-        if (this.config.tcp.enabled) {
-            servers.push(await this.createServer('tcp', this.config.host, this.config.tcp.enabled, serverOpts, this.broker.handle));
-        }
-        if (this.config.tls.enabled) {
-            servers.push(await this.createServer('tls', this.config.host, this.config.tls.enabled, serverOpts, this.broker.handle));
-        }
-        if (this.config.ws.enabled) {
-            servers.push(await this.createServer('ws', this.config.host, this.config.ws.enabled, serverOpts, this.broker.handle));
-        }
-        if (this.config.wss.enabled) {
-            servers.push(await this.createServer('wss', this.config.host, this.config.wss.enabled, serverOpts, this.broker.handle));
+        const promises: Promise<void>[] = [];
+        for (const key in this.config.servers) {
+            const server = this.config.servers[key];
+            const listener = new Listener(server.port, server.server, serverOpts, this.broker);
+            this.listeners[key] = listener;
+            promises.push(listener.start());
         }
 
-        this.servers = servers as [Server];
+        await Promise.all(promises);
     }
 
-    async stop() {
+    public async stop(): Promise<void> {
+        const promises: Promise<void>[] = [];
+        for (const listener of Object.values(this.listeners)) {
+            promises.push(listener.stop());
+        }
 
+        await Promise.all(promises);
     }
 
-    async restart() {
+    public async restart(): Promise<void> {
         await this.stop();
-        this.readConfig();
         await this.start();
     }
 }

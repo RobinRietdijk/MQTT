@@ -65,7 +65,8 @@ export class Listener {
 
     public async stop(): Promise<void> {
         if (!this.isListening()) {
-            throw new NotListening(`${this.id} - Listener is already stopped`);
+            console.log(`${this.id} - Listener is already stopped`);
+            return;
         }
 
         await new Promise<void>((resolve, reject) => {

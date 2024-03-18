@@ -113,8 +113,9 @@ describe('Listener', () => {
 			expect(listener.isListening()).toBe(false);
         });
 
-        it('should throw an error if the broker is not listening', async () => {
-			await expect(listener.stop()).rejects.toThrow();
+        it('should return and do nothing if the broker is not listening', async () => {
+			await listener.stop();
+			expect(listener.isListening()).toBe(false);
         });
 
         it('should reject if the broker fails to shut down', async () => {
