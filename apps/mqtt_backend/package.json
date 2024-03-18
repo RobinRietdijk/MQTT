@@ -11,9 +11,16 @@
 	"dependencies": {
 		"acme-client": "^5.3.0",
 		"aedes": "^0.51.0",
+		"aedes-persistence": "^9.1.2",
+		"aedes-persistence-mongodb": "^9.1.1",
+		"aedes-persistence-redis": "^10.0.0",
 		"aedes-server-factory": "^0.2.1",
 		"axios": "^1.6.7",
-		"dotenv": "^16.4.4"
+		"dotenv": "^16.4.4",
+		"mqemitter": "^5.0.0",
+		"mqemitter-mongodb": "^8.1.0",
+		"mqemitter-redis": "^5.0.0",
+		"yaml": "^2.4.1"
 	},
 	"devDependencies": {
 		"@jest/globals": "^29.7.0",

@@ -1,0 +1,31 @@
+aedes:
+  mq: null
+  id: 'aedes-cli',
+  persistence: null
+  concurrency: 100
+  heartbeatInterval: 60000
+  connectTimeout: 30000
+  keepaliveLimit: 0
+  queueLimit: 42
+  maxClientsIdLength: 23
+
+secureOptions:
+  cert: 'path/to/cert.pem'
+  key: 'path/to/key.pem'
+  rejectUnauthorized: true
+
+tcp:
+  enabled: true
+  port: 1883
+
+tls:
+  enabled: true
+  port: 8883
+
+ws:
+  enabled: true
+  port: 3000
+
+wss:
+  enabled: true
+  port: 4000
